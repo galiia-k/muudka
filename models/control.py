@@ -15,9 +15,18 @@ class Control_inertial:
     U = np.zeros(3)
     res_U = res_t = None
 
-    def __init__(self, Kw: float, Kq: float, B: Quaternion, J: np.ndarray, mu: float,
-                 gravity: Gravity_J2, atmoshpere: Atmosphere,
-                 av_sensor: Angular_velocity_sensor | None, star_tracker: Star_tracker | None):
+    def __init__(
+        self,
+        Kw: float,
+        Kq: float,
+        B: Quaternion,
+        J: np.ndarray,
+        mu: float,
+        gravity: Gravity_J2,
+        atmoshpere: Atmosphere,
+        av_sensor: Angular_velocity_sensor | None,
+        star_tracker: Star_tracker | None,
+    ):
         self.Kw = Kw
         self.Kq = Kq
         self.B = B  # ИСК в опорную СК
@@ -28,15 +37,22 @@ class Control_inertial:
         self.av_sensor = av_sensor
         self.star_tracker = star_tracker
 
-
     def calculate_control(self, t: float, x: np.ndarray) -> np.ndarray:
-        '''
+        """
         :return: управление на ССК
-        '''
+        """
         r = x[:3]
         v = x[3:6]
-        omega_acs = self.av_sensor.omega_measured(t, x[6:9]) if self.av_sensor is not None else omega_acs = x[6:9]
-        Q = self.star_tracker.Q_measured(t, x[9:]) if self.star_tracker is not None else Q = Quaternion(x[9:])
+        omega_acs = (
+            self.av_sensor.omega_measured(t, x[6:9])
+            if self.av_sensor is not None
+            else x[6:9]
+        )
+        Q = (
+            self.star_tracker.Q_measured(t, x[9:])
+            if self.star_tracker is not None
+            else Quaternion(x[9:])
+        )
 
         M_ext = self.gravity.momentum(x)
         if self.atmoshpere is not None:
@@ -63,9 +79,14 @@ class Control_inertial:
 
         q = A.vector
 
-        self.U = -M_ext + np.cross(omega_acs, self.J @ omega_acs) - \
-                 self.J @ np.cross(omega_acs_rel, A.conjugate.rotate(omega_rcs)) + self.J @ omega_dot_acs - \
-                 self.Kw * omega_acs_rel - self.Kq * q
+        self.U = (
+            -M_ext
+            + np.cross(omega_acs, self.J @ omega_acs)
+            - self.J @ np.cross(omega_acs_rel, A.conjugate.rotate(omega_rcs))
+            + self.J @ omega_dot_acs
+            - self.Kw * omega_acs_rel
+            - self.Kq * q
+        )
 
         return self.U
 
@@ -85,9 +106,17 @@ class Control_inertial:
         result_U = None
         result_t = None
 
-        def __init__(self, Kw: float, Kq: float, J: np.ndarray, mu: float,
-                     gravity: Gravity_J2, atmosphere: Atmosphere | None,
-                     angular_velocity_sensor: Angular_velocity_sensor | None, star_sensor: Star_tracker | None):
+        def __init__(
+            self,
+            Kw: float,
+            Kq: float,
+            J: np.ndarray,
+            mu: float,
+            gravity: Gravity_J2,
+            atmosphere: Atmosphere | None,
+            angular_velocity_sensor: Angular_velocity_sensor | None,
+            star_sensor: Star_tracker | None,
+        ):
             self.Kw = Kw
             self.Kq = Kq
             self.J = J
@@ -113,7 +142,9 @@ class Control_inertial:
             v = y[3:6]
             if self.angular_velocity_sensor is not None:
                 # получаем измерение угловой скорости от ДУС
-                W_abs_cck = self.angular_velocity_sensor.get_measured_w(t=t, w_real=y[6:9])
+                W_abs_cck = self.angular_velocity_sensor.get_measured_w(
+                    t=t, w_real=y[6:9]
+                )
             else:
                 W_abs_cck = y[6:9]
             if self.star_sensor is not None:
@@ -127,7 +158,9 @@ class Control_inertial:
             if self.atmosphere is not None:
                 M_ext += self.atmosphere.get_moment(y=y, t=t)
 
-            W_ref_ock = np.array([0, np.linalg.norm(np.cross(r, v) / (np.linalg.norm(r) ** 2)), 0])
+            W_ref_ock = np.array(
+                [0, np.linalg.norm(np.cross(r, v) / (np.linalg.norm(r) ** 2)), 0]
+            )
 
             # Ищем кватернион B (из ИСК в ОСК):
             e3 = r / np.linalg.norm(r)
@@ -148,16 +181,23 @@ class Control_inertial:
                 return np.array([0, 0, 0])
             self.W_ref_isk_now = np.cross(r, v) / (np.linalg.norm(r) ** 2)
             self.t_now = t
-            dotW_ref_ick = (self.W_ref_isk_now - self.W_ref_isk_last) / (self.t_now - self.t_last)
+            dotW_ref_ick = (self.W_ref_isk_now - self.W_ref_isk_last) / (
+                self.t_now - self.t_last
+            )
             dotW_ref_cck = Q.conjugate.rotate(dotW_ref_ick)
             self.t_last = t
             self.W_ref_isk_last = self.W_ref_isk_now
 
             q = A.vector
 
-            self.U = -M_ext + np.cross(W_abs_cck, self.J @ W_abs_cck) - \
-                     self.J @ np.cross(W_rel_cck, A.conjugate.rotate(W_ref_ock)) + self.J @ dotW_ref_cck - \
-                     self.Kw * W_rel_cck - self.Kq * q
+            self.U = (
+                -M_ext
+                + np.cross(W_abs_cck, self.J @ W_abs_cck)
+                - self.J @ np.cross(W_rel_cck, A.conjugate.rotate(W_ref_ock))
+                + self.J @ dotW_ref_cck
+                - self.Kw * W_rel_cck
+                - self.Kq * q
+            )
 
             return self.U
 
@@ -172,8 +212,12 @@ class Control_inertial:
         result_m = None
         result_t = None
 
-        def __init__(self, k: float, geomagnetic_field: Straight_dipole | Inclined_dipole,
-                     magnetometer: Magnetometer | None):
+        def __init__(
+            self,
+            k: float,
+            geomagnetic_field: Straight_dipole | Inclined_dipole,
+            magnetometer: Magnetometer | None,
+        ):
             self.k = k
             self.geomagnetic_field = geomagnetic_field
             self.magnetometer = magnetometer
@@ -202,5 +246,3 @@ class Control_inertial:
         def add_results(self, t: np.ndarray, m: np.ndarray):
             self.result_t = t
             self.result_m = m
-
-
