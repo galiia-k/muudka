@@ -14,14 +14,26 @@ class Gravity_J2:
         self.J = J
 
     def acceleration(self, x: np.ndarray) -> np.ndarray:
-        WJ2 = 3 / 2 * self.J2 * self.mu * self.R ** 2 / (np.linalg.norm(x[0:3])) ** 7 * np.array([
-            -x[0] * (x[0] ** 2 + x[1] ** 2 - 4 * x[2] ** 2),
-            -x[1] * (x[0] ** 2 + x[1] ** 2 - 4 * x[2] ** 2),
-            -3 * x[2] * (x[0] ** 2 + x[1] ** 2) + 2 * x[2] ** 3
-        ])
-        result = - self.mu * x[0:3] / (np.linalg.norm(x[0:3])) ** 3 + WJ2
+        WJ2 = (
+            3
+            / 2
+            * self.J2
+            * self.mu
+            * self.R**2
+            / (np.linalg.norm(x[0:3])) ** 7
+            * np.array(
+                [
+                    -x[0] * (x[0] ** 2 + x[1] ** 2 - 4 * x[2] ** 2),
+                    -x[1] * (x[0] ** 2 + x[1] ** 2 - 4 * x[2] ** 2),
+                    -3 * x[2] * (x[0] ** 2 + x[1] ** 2) + 2 * x[2] ** 3,
+                ]
+            )
+        )
+        result = -self.mu * x[0:3] / (np.linalg.norm(x[0:3])) ** 3 + WJ2
         return result
 
     def momentum(self, x: np.ndarray) -> np.ndarray:
         r_acs = Quaternion(x[9:13]).conjugate.rotate(x[:3])
-        return 3 * self.mu / (np.linalg.norm(r_acs) ** 5) * np.cross(r_acs, self.J @ r_acs)
+        return (
+            3 * self.mu / (np.linalg.norm(r_acs) ** 5) * np.cross(r_acs, self.J @ r_acs)
+        )
