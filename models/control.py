@@ -15,9 +15,18 @@ class Control_inertial:
     U = np.zeros(3)
     res_U = res_t = None
 
-    def __init__(self, Kw: float, Kq: float, B: Quaternion, J: np.ndarray, mu: float,
-                 gravity: Gravity_J2, atmoshpere: Atmosphere,
-                 angular_velocity: Angular_velocity_sensor | None, star_tracker: Star_tracker | None):
+    def __init__(
+        self,
+        Kw: float,
+        Kq: float,
+        B: Quaternion,
+        J: np.ndarray,
+        mu: float,
+        gravity: Gravity_J2,
+        atmoshpere: Atmosphere,
+        angular_velocity: Angular_velocity_sensor | None,
+        star_tracker: Star_tracker | None,
+    ):
         self.Kw = Kw
         self.Kq = Kq
         self.B = B  # ИСК в опорную СК
