@@ -1,10 +1,10 @@
 import numpy as np
+from numpy.linalg import matrix_rank, pinv
 from typing import List
-import sys
 
 
 class Flywheel:
-    result_H = result_t = result_omega = result_dot_omega = None
+    H = t = omega = dot_omega = None
 
     def __init__(self, H0: np.ndarray, max_dotH: np.ndarray, list_J: List[np.ndarray],
                  list_directions: List[np.ndarray]):
@@ -15,15 +15,16 @@ class Flywheel:
             маховика в ССК.
         :param list_directions: список направлений угловой скорости маховиков
         '''
+        
+        
         self.H0 = H0
         self.max_dotH = max_dotH
         self.list_J = list_J
-
-        if np.linalg.matrix_rank(list_directions) == 3:
+ 
+        if matrix_rank(list_directions) == 3:
             self.list_directions_rotation = list_directions
         else:
-            print("Направления вращения маховиков указаны неверно")
-            sys.exit()
+            raise ValueError("Направления вращения маховиков указаны неверно")
 
 
     def momentum(self, dot_H: np.ndarray) -> np.ndarray:
@@ -35,10 +36,34 @@ class Flywheel:
 
 
     def add_results(self, t: np.ndarray, H: np.ndarray):
-        self.result_t = t
-        self.result_H = H
+        self.t = t
+        self.H = H
 
 
-    #def required_rotation(self):
+    def calculate_rotation(self):
+        H = self.H
+
+        # создаем хранилище для угловой скорости и углового ускорения маховиков на i шаге
+        self.omega = np.zeros((len(H), len(self.list_directions_rotation)))
+        self.dot_omega = np.zeros((len(H), len(self.list_directions_rotation)))
+        # Инициализируем пустой список для хранения столбцов матрицы A
+        A_columns = []
+
+        # Создаем матрицу A циклом
+        for J, e in zip(self.list_J, self.list_directions_rotation):
+            A_columns.append(J @ e)
+
+        # Преобразуем список в матрицу и транспонируем ее,
+        # после этого находим псевдообратную матрицу A+
+        A_pseudo = pinv(np.vstack(A_columns).T)
+
+        # Решаем систему уравнений X = A+ * H и добавляем результат в список self.omega
+        for i in range(len(H)):
+            self.omega[i] = np.dot(A_pseudo, H[i])
+
+        # считаем ускорение
+        for i in range(len(self.omega) - 1):
+            self.dot_omega[i+1] = (self.omega[i + 1] - self.omega[i]) / (self.t[i + 1] - self.t[i])
+
 
 
